@@ -8,6 +8,8 @@ import {Endpoints, HttpMethod} from "./Router/endpoints.interface.js";
 export default class Server extends EventEmitter {
     private server;
 
+    private allEndpoints: Endpoints = {};
+
     constructor() {
         super();
         this.server = http.createServer(this.handleRequest);
@@ -24,6 +26,10 @@ export default class Server extends EventEmitter {
             const endpoint = endpoints[path];
 
             keys(endpoint).forEach((method) => {
+                if (this.isEndpointAlreadyExists(path, method as HttpMethod)) {
+                    throw new Error(`Endpoint ${path} already exists for method ${method}`);
+                }
+
                 const handler = endpoint[method as keyof typeof endpoint];
 
                 this.on(this.constructEventName(path, method), handler);
@@ -31,6 +37,12 @@ export default class Server extends EventEmitter {
         };
 
         keys(endpoints).forEach(setEndpointEvent);
+
+        this.allEndpoints = {...this.allEndpoints, ...endpoints};
+    }
+
+    private isEndpointAlreadyExists(path: string, method: HttpMethod) {
+        return this.allEndpoints[path]?.[method];
     }
 
     private constructEventName(path: string, method: string) {
