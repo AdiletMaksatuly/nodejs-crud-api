@@ -41,6 +41,16 @@ export default class Server extends EventEmitter {
         const path = req.url!;
         const method = req.method as HttpMethod;
 
+        if (!this.allEndpoints[path]?.[method]) {
+            this.sendNotFound(res);
+            return;
+        }
+
         this.emit(this.constructEventName(path, method), req, res);
+    }
+
+    private sendNotFound(res: http.ServerResponse): void {
+        res.statusCode = 404;
+        res.end('Not found');
     }
 }
