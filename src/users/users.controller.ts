@@ -21,7 +21,10 @@ class UsersController implements UsersControllerEndpoints {
 		res.end(users);
 	}
 
-	public async getUser(req: CustomRequest, res: http.ServerResponse) {
+	public async getUser(
+		req: CustomRequest,
+		res: http.ServerResponse
+	): Promise<void> {
 		res.end('GET users/:id');
 	}
 
