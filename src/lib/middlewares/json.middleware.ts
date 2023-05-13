@@ -10,11 +10,9 @@ export const json = (req: http.IncomingMessage, res: http.ServerResponse) => {
     // @ts-ignore
     res.end = function(data, encoding, callback) {
         if (data && typeof data !== 'string') {
-            // Convert the response body to JSON string
             data = JSON.stringify(data);
         }
 
-        // Call the original res.end() with the updated arguments
         originalEnd.call(this, data, encoding, callback);
     };
 }

@@ -1,10 +1,10 @@
-
 import http from 'http';
 import Router from "../Router/Router.js";
 import EventEmitter from 'events';
 import {keys} from "../../utils/keys.util.js";
 import {Endpoints, HttpMethod} from "../Router/endpoints.interface.js";
 import {Middleware} from "../models/middleware.type.js";
+import {CustomRequest} from "../models/request.type.js";
 
 export default class Server extends EventEmitter {
     private server: http.Server;
@@ -73,26 +73,51 @@ export default class Server extends EventEmitter {
         return normalizedEndpoints;
     }
 
-    private handleRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
-        const path = req.url!;
-        const method = req.method as HttpMethod;
+    private handleRequest = (req: CustomRequest, res: http.ServerResponse) => {
+        const requestPath = req.url!;
+        const requestMethod = req.method as HttpMethod;
 
-        if (!this.allEndpoints[path]?.[method]) {
-            this.sendNotFound(res);
-            return;
+        let isHandled = false;
+
+        for (const endpointPath of Object.keys(this.allEndpoints)) {
+            const pattern = this.getPatternRegex(endpointPath);
+
+            if (pattern.test(requestPath)) {
+                req.params = this.extractParams(endpointPath, requestPath);
+
+                this.middlewares.forEach((middleware) => middleware(req, res));
+
+                isHandled = this.emit(this.constructEventName(endpointPath, requestMethod), req, res);
+                break;
+            }
         }
 
-        this.middlewares.forEach((middleware) => middleware(req, res));
-
-        const emitted = this.emit(this.constructEventName(path, method), req, res);
-
-        if (!emitted) {
-            this.sendNotFound(res);
-        }
+        if (!isHandled) this.sendNotFound(res);
     }
 
     private sendNotFound(res: http.ServerResponse): void {
         res.statusCode = 404;
         res.end('Not found');
+    }
+
+    private getPatternRegex(path: string): RegExp {
+        const pattern = path.replace(/:[^/]+/g, '([^/]+)');
+        return new RegExp(`^${pattern}$`);
+    }
+
+    private extractParams(endpointPath: string, requestPath: string): Record<string, string> {
+        const endpointSegments = endpointPath.split('/');
+        const requestSegments = requestPath.split('/');
+
+        return endpointSegments.reduce((params: Record<string, string>, endpointSegment, i) => {
+            if (endpointSegment.startsWith(':')) {
+                const paramName = endpointSegment.substring(1);
+                const paramValue = requestSegments[i];
+
+                params[paramName] = paramValue;
+            }
+
+            return params;
+        }, {});
     }
 }
