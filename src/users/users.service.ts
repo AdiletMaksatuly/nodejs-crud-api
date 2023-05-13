@@ -1,16 +1,16 @@
 interface User {
-    id?: string;
-    username: string;
-    age: number;
-    hobbies: string[];
+	id?: string;
+	username: string;
+	age: number;
+	hobbies: string[];
 }
 
 class UsersService {
-    private users: User[] = [];
+	private readonly users: User[] = [];
 
-    public async find() {
-        return Promise.resolve(this.users);
-    }
+	public async find(): Promise<User[]> {
+		return this.users;
+	}
 }
 
 export default new UsersService();

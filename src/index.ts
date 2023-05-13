@@ -1,12 +1,12 @@
 import * as dotenv from 'dotenv';
-import {Server} from "./lib/index.js";
-import {usersRouter} from "./users/index.js";
-import appRouter from "./app/app.router.js";
-import {json} from "./lib/middlewares/json.middleware.js";
+import { Server } from './lib/index.js';
+import { usersRouter } from './users/index.js';
+import appRouter from './app/app.router.js';
+import { json } from './lib/middlewares/json.middleware.js';
 
 dotenv.config();
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT ?? 3000;
 
 const BASE_URL = '/api';
 
@@ -19,4 +19,6 @@ registerRouter(appRouter);
 
 server.use(json);
 
-server.listen(PORT, () => console.log('Server is listening on port: ' + PORT));
+server.listen(PORT, () => {
+	console.info(`Server is listening on port: ${PORT}`);
+});
