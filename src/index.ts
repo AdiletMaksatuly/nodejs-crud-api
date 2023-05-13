@@ -1,7 +1,8 @@
 import * as dotenv from 'dotenv';
-import Server from './Server.js';
-import usersRouter from "./routers/users.router.js";
-import appRouter from "./routers/app.router.js";
+import {Server} from "./lib/index.js";
+import {usersRouter} from "./users/index.js";
+import appRouter from "./app/app.router.js";
+import {json} from "./lib/middlewares/json.middleware.js";
 
 dotenv.config();
 
@@ -14,6 +15,8 @@ const server = new Server();
 const registerRouter = server.registerRouter.bind(server, BASE_URL);
 
 registerRouter(usersRouter);
-registerRouter(appRouter)
+registerRouter(appRouter);
+
+server.use(json);
 
 server.listen(PORT, () => console.log('Server is listening on port: ' + PORT));
