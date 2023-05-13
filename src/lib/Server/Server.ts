@@ -84,7 +84,11 @@ export default class Server extends EventEmitter {
 
         this.middlewares.forEach((middleware) => middleware(req, res));
 
-        this.emit(this.constructEventName(path, method), req, res);
+        const emitted = this.emit(this.constructEventName(path, method), req, res);
+
+        if (!emitted) {
+            this.sendNotFound(res);
+        }
     }
 
     private sendNotFound(res: http.ServerResponse): void {
