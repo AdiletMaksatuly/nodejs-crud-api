@@ -1,5 +1,5 @@
-import Router from '../Router/Router.js';
-import http from "http";
+import {Router} from "../lib/index.js";
+import UsersController from "./users.controller.js";
 
 const usersRouter = new Router();
 

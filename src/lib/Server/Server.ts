@@ -1,14 +1,17 @@
 
 import http from 'http';
-import Router from "./Router/Router.js";
+import Router from "../Router/Router.js";
 import EventEmitter from 'events';
-import {keys} from "./utils/keys.util.js";
-import {Endpoints, HttpMethod} from "./Router/endpoints.interface.js";
+import {keys} from "../../utils/keys.util.js";
+import {Endpoints, HttpMethod} from "../Router/endpoints.interface.js";
+import {Middleware} from "../models/middleware.type.js";
 
 export default class Server extends EventEmitter {
-    private server;
+    private server: http.Server;
 
     private allEndpoints: Endpoints = {};
+
+    private middlewares: Middleware[] = [];
 
     constructor() {
         super();
@@ -17,6 +20,10 @@ export default class Server extends EventEmitter {
 
     public listen(port: number | string, callback: () => void) {
         this.server.listen(+port, callback);
+    }
+
+    public use(middleware: Middleware) {
+        this.middlewares.push(middleware);
     }
 
     public registerRouter(baseURL: string, router: Router) {
@@ -74,6 +81,8 @@ export default class Server extends EventEmitter {
             this.sendNotFound(res);
             return;
         }
+
+        this.middlewares.forEach((middleware) => middleware(req, res));
 
         this.emit(this.constructEventName(path, method), req, res);
     }

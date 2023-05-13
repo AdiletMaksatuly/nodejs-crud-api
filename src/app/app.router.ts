@@ -1,4 +1,4 @@
-import Router from '../Router/Router.js';
+import {Router} from "../lib/index.js";
 
 const appRouter = new Router();
 
