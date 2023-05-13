@@ -1,11 +1,6 @@
 import {Endpoints, HttpMethod} from "./endpoints.interface.js";
 import http from "http";
 
-export interface EndpointMethodArgs {
-    path: string;
-    handler: (req: http.IncomingMessage, res: http.ServerResponse) => void;
-}
-
 export default class Router {
     private readonly endpoints: Endpoints;
 

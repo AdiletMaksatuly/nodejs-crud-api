@@ -1,3 +1,4 @@
-export const keys = (obj: Record<string, unknown>): (keyof typeof obj)[] => {
-    return Object.keys(obj) as (keyof typeof obj)[];
+export const keys = <Obj extends Record<string, unknown>>
+    (obj: Obj): (keyof Obj)[] => {
+        return Object.keys(obj) as (keyof Obj)[];
 }

@@ -2,8 +2,10 @@ import http from "http";
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
+type Endpoint = {
+    [key in HttpMethod]: http.RequestListener;
+}
+
 export interface Endpoints {
-    [path: string]: {
-        [method in HttpMethod]: http.RequestListener;
-    };
+    [path: string]: Endpoint;
 }

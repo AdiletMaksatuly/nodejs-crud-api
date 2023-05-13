@@ -19,26 +19,31 @@ export default class Server extends EventEmitter {
         this.server.listen(+port, callback);
     }
 
-    public registerRouter(router: Router) {
+    public registerRouter(baseURL: string, router: Router) {
         const endpoints = router.getEndpoints();
 
         const setEndpointEvent = (path: string) => {
             const endpoint = endpoints[path];
 
             keys(endpoint).forEach((method) => {
-                if (this.isEndpointAlreadyExists(path, method as HttpMethod)) {
+                const normalizedPath = baseURL + path;
+
+                if (this.isEndpointAlreadyExists(normalizedPath, method)) {
                     throw new Error(`Endpoint ${path} already exists for method ${method}`);
                 }
 
-                const handler = endpoint[method as keyof typeof endpoint];
+                const handler = endpoint[method];
 
-                this.on(this.constructEventName(path, method), handler);
+                this.on(this.constructEventName(normalizedPath, method), handler);
             });
         };
 
-        keys(endpoints).forEach(setEndpointEvent);
+        keys(endpoints).forEach((path) => setEndpointEvent(String(path)));
 
-        this.allEndpoints = {...this.allEndpoints, ...endpoints};
+        this.allEndpoints = {
+            ...this.allEndpoints,
+            ...(baseURL ? this.normalizeEndpoints(baseURL, endpoints) : endpoints)
+        };
     }
 
     private isEndpointAlreadyExists(path: string, method: HttpMethod) {
@@ -47,6 +52,18 @@ export default class Server extends EventEmitter {
 
     private constructEventName(path: string, method: string) {
         return `${path}:${method}`;
+    }
+
+    private normalizeEndpoints(baseURL: string, endpoints: Endpoints) {
+        const normalizedEndpoints: Endpoints = {};
+
+        keys(endpoints).forEach((path) => {
+            const endpoint = endpoints[path];
+
+            normalizedEndpoints[baseURL + path] = { ...endpoint };
+        });
+
+        return normalizedEndpoints;
     }
 
     private handleRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
