@@ -1,6 +1,7 @@
 import type http from 'http';
+import type ExtendedRequest from '../ExtendedRequest/ExtendedRequest.js';
 
 export type Middleware = (
-	req: http.IncomingMessage,
+	req: ExtendedRequest,
 	res: http.ServerResponse
 ) => void;

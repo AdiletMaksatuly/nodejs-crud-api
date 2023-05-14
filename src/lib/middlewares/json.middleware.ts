@@ -1,9 +1,7 @@
 import type http from 'http';
+import type ExtendedRequest from '../ExtendedRequest/ExtendedRequest.js';
 
-export const json = (
-	req: http.IncomingMessage,
-	res: http.ServerResponse
-): void => {
+export const json = (req: ExtendedRequest, res: http.ServerResponse): void => {
 	res.writeHead(200, {
 		'Content-type': 'application/json',
 	});

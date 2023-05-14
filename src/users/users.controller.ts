@@ -1,9 +1,8 @@
 import type http from 'http';
 import UsersService from './users.service.js';
 import { type RequestHandler } from '../lib/models/request-handler.type.js';
-import { type CustomRequest } from '../lib/models/request.type.js';
 import * as uuid from 'uuid';
-import { Controller, ERRORS } from '../lib/index.js';
+import { Controller, ERRORS, type ExtendedRequest } from '../lib/index.js';
 
 interface UsersControllerEndpoints {
 	getUsers: RequestHandler;
@@ -15,7 +14,7 @@ interface UsersControllerEndpoints {
 
 class UsersController extends Controller implements UsersControllerEndpoints {
 	public async getUsers(
-		req: CustomRequest,
+		req: ExtendedRequest,
 		res: http.ServerResponse
 	): Promise<void> {
 		const users = await UsersService.find();
@@ -24,13 +23,14 @@ class UsersController extends Controller implements UsersControllerEndpoints {
 	}
 
 	public getUser = async (
-		req: CustomRequest,
+		req: ExtendedRequest,
 		res: http.ServerResponse
 	): Promise<void> => {
 		if (!req.params?.id) throw new Error('No id provided');
 
 		if (!uuid.validate(req.params.id)) {
-			this.sendBadRequest(res, 'Invalid user id'); return;
+			this.sendBadRequest(res, 'Invalid user id');
+			return;
 		}
 
 		try {
@@ -39,29 +39,30 @@ class UsersController extends Controller implements UsersControllerEndpoints {
 			res.end(user);
 		} catch (error: unknown) {
 			if (error instanceof Error && error.message === ERRORS.NOT_FOUND) {
-				this.sendNotFound(res, error.message); return;
+				this.sendNotFound(res, error.message);
+				return;
 			}
 
-			this.sendInternalServerError(res, ERRORS.INTERNAL_SERVER_ERROR); 
+			this.sendInternalServerError(res, ERRORS.INTERNAL_SERVER_ERROR);
 		}
 	};
 
 	public async createUser(
-		req: CustomRequest,
+		req: ExtendedRequest,
 		res: http.ServerResponse
 	): Promise<void> {
 		res.end('POST users/');
 	}
 
 	public async updateUser(
-		req: CustomRequest,
+		req: ExtendedRequest,
 		res: http.ServerResponse
 	): Promise<void> {
 		res.end('PUT users/:id');
 	}
 
 	public async deleteUser(
-		req: CustomRequest,
+		req: ExtendedRequest,
 		res: http.ServerResponse
 	): Promise<void> {
 		res.end('DELETE users/:id');

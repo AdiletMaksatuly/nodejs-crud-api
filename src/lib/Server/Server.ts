@@ -1,5 +1,5 @@
 import http from 'http';
-import type Router from '../Router/Router.js';
+import { type Router } from '../Router/index.js';
 import EventEmitter from 'events';
 import { keys } from '../../utils/keys.util.js';
 import {
@@ -8,8 +8,8 @@ import {
 	type HttpMethod,
 } from '../Router/endpoints.interface.js';
 import { type Middleware } from '../models/middleware.type.js';
-import { type CustomRequest } from '../models/request.type.js';
 import { ERRORS } from '../constants/errors.const.js';
+import { ExtendedRequest } from '../ExtendedRequest/index.js';
 
 export default class Server extends EventEmitter {
 	private readonly server: http.Server;
@@ -20,10 +20,16 @@ export default class Server extends EventEmitter {
 
 	constructor() {
 		super();
-		this.server = http.createServer((req, res) => {
-			this.setRequestListeners(req, res);
-			this.handleRequest(req, res);
-		});
+
+		this.server = http.createServer(
+			{
+				IncomingMessage: ExtendedRequest,
+			},
+			(req, res) => {
+				this.setRequestListeners(req, res);
+				this.handleRequest(req, res);
+			}
+		);
 
 		this.setListeners();
 	}
@@ -41,11 +47,11 @@ export default class Server extends EventEmitter {
 
 		const setEndpointEvent = this.setEndpointEvent.bind(this, baseURL);
 
-		keys(endpoints).forEach((path) =>
-			{ keys(endpoints[path]).forEach((method) =>
-				{ setEndpointEvent(endpoints[path], path, method); }
-			); }
-		);
+		keys(endpoints).forEach((path) => {
+			keys(endpoints[path]).forEach((method) => {
+				setEndpointEvent(endpoints[path], path, method);
+			});
+		});
 
 		this.allEndpoints = {
 			...this.allEndpoints,
@@ -87,7 +93,7 @@ export default class Server extends EventEmitter {
 
 		this.on(
 			this.constructEventName(normalizedPath, method),
-			(req: CustomRequest, res: http.ServerResponse) => {
+			(req: ExtendedRequest, res: http.ServerResponse) => {
 				handler(req, res).catch((error) => {
 					this.emit('error', error);
 
@@ -99,7 +105,7 @@ export default class Server extends EventEmitter {
 	};
 
 	private setRequestListeners(
-		req: http.IncomingMessage,
+		req: ExtendedRequest,
 		res: http.ServerResponse
 	): void {
 		res.on('error', (error: unknown) => this.emit('error', error));
@@ -126,7 +132,7 @@ export default class Server extends EventEmitter {
 	}
 
 	private readonly handleRequest = (
-		req: CustomRequest,
+		req: ExtendedRequest,
 		res: http.ServerResponse
 	): void => {
 		const requestPath = req.url ?? '/';

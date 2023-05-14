@@ -1,7 +1,7 @@
 import type http from 'http';
-import { type CustomRequest } from './request.type.js';
+import type ExtendedRequest from '../ExtendedRequest/ExtendedRequest.js';
 
 export type RequestHandler = (
-	req: CustomRequest,
+	req: ExtendedRequest,
 	res: http.ServerResponse
 ) => Promise<void>;

@@ -1,11 +1,11 @@
 import type http from 'http';
-import { type CustomRequest } from '../models/request.type.js';
+import type ExtendedRequest from '../ExtendedRequest/ExtendedRequest.js';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
 export type Endpoint = Partial<{
 	[key in HttpMethod]: (
-		req: CustomRequest,
+		req: ExtendedRequest,
 		res: http.ServerResponse
 	) => Promise<void>;
 }>;
