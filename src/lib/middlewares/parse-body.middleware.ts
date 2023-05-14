@@ -5,7 +5,7 @@ export const parseBody = async (
 	req: ExtendedRequest,
 	res: http.ServerResponse
 ): Promise<void> => {
-	await new Promise((resolve, reject) => {
+	await new Promise<void>((resolve, reject) => {
 		let body: string = '';
 		const chunks: Buffer[] = [];
 

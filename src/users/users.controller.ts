@@ -44,15 +44,30 @@ class UsersController extends Controller implements UsersControllerEndpoints {
 			}
 
 			this.sendInternalServerError(res, ERRORS.INTERNAL_SERVER_ERROR);
+			throw error;
 		}
 	};
 
-	public async createUser(
+	public createUser = async (
 		req: ExtendedRequest,
 		res: http.ServerResponse
-	): Promise<void> {
-		res.end('POST users/');
-	}
+	): Promise<void> => {
+		const userToCreate: unknown = JSON.parse(req.body);
+
+		try {
+			const createdUser = await UsersService.createUser(userToCreate);
+
+			this.sendPostOk(res, createdUser);
+		} catch (error: unknown) {
+			if (error instanceof Error && error.message === ERRORS.BAD_REQUEST) {
+				this.sendBadRequest(res, error.message);
+				return;
+			}
+
+			this.sendInternalServerError(res, ERRORS.INTERNAL_SERVER_ERROR);
+			throw error;
+		}
+	};
 
 	public async updateUser(
 		req: ExtendedRequest,

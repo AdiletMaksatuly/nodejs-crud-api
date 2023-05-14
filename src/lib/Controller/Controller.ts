@@ -2,6 +2,16 @@ import type http from 'http';
 import { ERRORS } from '../constants/errors.const.js';
 
 export default class Controller {
+	public sendPostOk = <T>(res: http.ServerResponse, message: T): void => {
+		res.writeHead(
+			201,
+			typeof message === 'string'
+				? { 'Content-Type': 'text/plain' }
+				: { 'Content-Type': 'application/json' }
+		);
+		res.end(message);
+	};
+
 	public sendBadRequest = (res: http.ServerResponse, message: string): void => {
 		res.writeHead(400, ERRORS.BAD_REQUEST, { 'Content-Type': 'text/plain' });
 		res.end(message);
