@@ -2,7 +2,7 @@ import * as dotenv from 'dotenv';
 import { Server } from './lib/index.js';
 import { usersRouter } from './users/index.js';
 import appRouter from './app/app.router.js';
-import { json } from './lib/middlewares/json.middleware.js';
+import { json, parseBody } from './lib/middlewares/index.js';
 
 dotenv.config();
 
@@ -18,6 +18,7 @@ registerRouter(usersRouter);
 registerRouter(appRouter);
 
 server.use(json);
+server.use(parseBody);
 
 server.listen(PORT, () => {
 	console.info(`Server is listening on port: ${PORT}`);
