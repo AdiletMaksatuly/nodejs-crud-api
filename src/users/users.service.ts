@@ -9,13 +9,100 @@ import {
 } from '../lib/Database/message.interface.js';
 import { type EmptyObject } from '../types/empty-object.type.js';
 import { isEmptyObject } from '../utils/isEmptyObject.util.js';
+import { isClusterMode } from '../utils/isClusterMode.util.js';
+import { DB } from '../server.js';
 
 class UsersService {
-	// TODO remove or inject DBService to work with database
-	private readonly users: User[] = [];
+	// private users: User[] = [];
+
+	public async find(): Promise<User[]> {
+		if (!isClusterMode()) {
+			return this.getUsersFromDB();
+		}
+
+		try {
+			return await this.processDataWithMaster<User[]>({
+				operation: 'get',
+				key: 'users',
+			});
+		} catch (error: unknown) {
+			if (error instanceof Error && error.message === ERRORS.NOT_FOUND) {
+				return [];
+			}
+
+			throw error;
+		}
+	}
+
+	public async findById(id: string): Promise<User> {
+		const users = await this.getUsers();
+
+		const foundUser = users.find((user) => user.id === id);
+
+		if (!foundUser) throw new Error(ERRORS.NOT_FOUND);
+
+		return foundUser;
+	}
+
+	public async createUser(userToCreate: unknown): Promise<User> {
+		if (!this.isValidUser(userToCreate)) throw new Error(ERRORS.BAD_REQUEST);
+
+		const newUser: User = {
+			...userToCreate,
+			id: v4(),
+		};
+
+		const oldUsers = await this.getUsers();
+
+		const newUsers = [...oldUsers, newUser];
+
+		await this.setUsers(newUsers);
+
+		return newUser;
+	}
+
+	public async findByIdAndUpdate(
+		id: string,
+		userToUpdate: unknown
+	): Promise<User> {
+		if (!this.isValidUser(userToUpdate)) throw new Error(ERRORS.BAD_REQUEST);
+
+		const newUser = {
+			...userToUpdate,
+			id,
+		};
+
+		const users = await this.getUsers();
+
+		const doesUserExist = users.findIndex((user) => user.id === id) !== -1;
+
+		if (!doesUserExist) throw new Error(ERRORS.NOT_FOUND);
+
+		const newUsers = users.map((user) => {
+			if (user.id === id) return newUser;
+
+			return user;
+		});
+
+		await this.setUsers(newUsers);
+
+		return newUser;
+	}
+
+	public async findByIdAndDelete(id: string): Promise<void> {
+		const users = await this.getUsers();
+
+		const doesUserExist = users.findIndex((user) => user.id === id) !== -1;
+
+		if (!doesUserExist) throw new Error(ERRORS.NOT_FOUND);
+
+		const newUsers = users.filter((user) => user.id !== id);
+
+		await this.setUsers(newUsers);
+	}
 
 	// TODO rename to something different because it's being used not only to get data but also to send data
-	private readonly getDataFromMasterProcess = async <T>(
+	private readonly processDataWithMaster = async <T>(
 		message: OperationMessage
 	): Promise<T> => {
 		return await new Promise<T>((resolve, reject) => {
@@ -38,109 +125,38 @@ class UsersService {
 		});
 	};
 
-	public async find(): Promise<User[]> {
-		try {
-			return await this.getDataFromMasterProcess<User[]>({
-				operation: 'get',
-				key: 'users',
-			});
-		} catch (error: unknown) {
-			if (error instanceof Error && error.message === ERRORS.NOT_FOUND) {
-				return [];
-			}
-
-			throw error;
+	private readonly getUsers = async (): Promise<User[]> => {
+		if (isClusterMode()) {
+			return await this.find();
 		}
-	}
 
-	public async findById(id: string): Promise<User> {
-		const users = await this.find();
-		const foundUser = users.find((user) => user.id === id);
+		return this.getUsersFromDB();
+	};
 
-		if (!foundUser) throw new Error(ERRORS.NOT_FOUND);
+	private readonly getUsersFromDB = (): User[] => {
+		return DB.get<User[]>('users') ?? [];
+	};
 
-		return foundUser;
-	}
+	private readonly setUsers = async (users: User[]): Promise<void> => {
+		if (isClusterMode()) {
+			await this.setUsersClusterMode(users);
+			return;
+		}
 
-	public async createUser(userToCreate: unknown): Promise<User> {
-		if (!this.isValidUser(userToCreate)) throw new Error(ERRORS.BAD_REQUEST);
+		DB.set('users', users);
+	};
 
-		const newUser: User = {
-			...userToCreate,
-			id: v4(),
-		};
-
-		const oldUsers = await this.find();
-		const newUsers = [...oldUsers, newUser];
-
-		const result =
-			await this.getDataFromMasterProcess<MessageFromMasterSuccess>({
-				operation: 'set',
-				key: 'users',
-				value: newUsers,
-			});
-
-		if (result.message !== 'OK')
-			throw new Error('Something went wrong when DB.set() was called');
-
-		return newUser;
-	}
-
-	public async findByIdAndUpdate(
-		id: string,
-		userToUpdate: unknown
-	): Promise<User> {
-		if (!this.isValidUser(userToUpdate)) throw new Error(ERRORS.BAD_REQUEST);
-
-		const newUser = {
-			...userToUpdate,
-			id,
-		};
-
-		const users = await this.find();
-		const doesUserExist = users.findIndex((user) => user.id === id) !== -1;
-
-		if (!doesUserExist) throw new Error(ERRORS.NOT_FOUND);
-
-		const newUsers = users.map((user) => {
-			if (user.id === id) return newUser;
-
-			return user;
+	private readonly setUsersClusterMode = async (newUsers: User[]): Promise<void> => {
+		const result = await this.processDataWithMaster<MessageFromMasterSuccess>({
+			operation: 'set',
+			key: 'users',
+			value: newUsers,
 		});
-
-		// TODO set conditions if mode is cluster you don't need to send messages to master process because there is only one process
-		const result =
-			await this.getDataFromMasterProcess<MessageFromMasterSuccess>({
-				operation: 'set',
-				key: 'users',
-				value: newUsers,
-			});
-
-		if (result.message !== 'OK')
-			throw new Error('Something went wrong when DB.set() was called');
-
-		return newUser;
-	}
-
-	public async findByIdAndDelete(id: string): Promise<void> {
-		const users = await this.find();
-		const doesUserExist = users.findIndex((user) => user.id === id) !== -1;
-
-		if (!doesUserExist) throw new Error(ERRORS.NOT_FOUND);
-
-		const newUsers = users.filter((user) => user.id !== id);
-
-		const result =
-			await this.getDataFromMasterProcess<MessageFromMasterSuccess>({
-				operation: 'set',
-				key: 'users',
-				value: newUsers,
-			});
 
 		if (result.message !== 'OK') {
 			throw new Error('Something went wrong when DB.set() was called');
 		}
-	}
+	};
 
 	private isValidUser(obj: unknown): obj is UserWithoutId {
 		// TODO make this unwrapped to explicitly inform what condition is wrong

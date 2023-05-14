@@ -18,7 +18,7 @@ import { PORT } from './constants/port.const.js';
 import { CPU_COUNT } from './constants/cpus.const.js';
 import { createWorkerPort } from './utils/createWorkerPort.util.js';
 
-const DB = new Database();
+export const DB = new Database();
 
 export const createAppServer = (): Server => {
 	const server = new Server();
@@ -68,9 +68,9 @@ export const spreadWorkers = (): void => {
 			PORT: createWorkerPort(i),
 		});
 
-		cluster.on('message', (workerWhoEmitted, message: unknown) =>
-			{ handleMessageFromWorker(forkedWorker, workerWhoEmitted, message); }
-		);
+		cluster.on('message', (workerWhoEmitted, message: unknown) => {
+			handleMessageFromWorker(forkedWorker, workerWhoEmitted, message);
+		});
 	}
 };
 
@@ -109,11 +109,11 @@ export const createLoadBalancerServer = (): void => {
 		currentWorkerIndex++;
 	});
 
-	loadBalancerServer.listen(PORT, () =>
-		{ console.info(
+	loadBalancerServer.listen(PORT, () => {
+		console.info(
 			`Master process ${process.pid} server started on port: ${PORT}`
-		); }
-	);
+		);
+	});
 };
 
 export const createWorkerServer = (): void => {
