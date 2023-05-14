@@ -1,11 +1,11 @@
 import { v4 } from 'uuid';
 import { ERRORS } from '../lib/index.js';
-import { type User } from './user.interface.js';
+import { type User, type UserWithoutId } from './user.interface.js';
 
 class UsersService {
 	private readonly users: User[] = [
 		{
-			id: v4(),
+			id: 'edd2ea12-5043-4a5a-81bc-85b2d4ac823a',
 			username: 'John',
 			age: 25,
 			hobbies: ['reading', 'coding'],
@@ -28,8 +28,8 @@ class UsersService {
 		if (!this.isValidUser(userToCreate)) throw new Error(ERRORS.BAD_REQUEST);
 
 		const user: User = {
-			id: v4(),
 			...userToCreate,
+			id: v4(),
 		};
 
 		this.users.push(user);
@@ -37,7 +37,27 @@ class UsersService {
 		return user;
 	}
 
-	private isValidUser(obj: unknown): obj is User {
+	public async findByIdAndUpdate(
+		id: string,
+		userToUpdate: unknown
+	): Promise<User> {
+		if (!this.isValidUser(userToUpdate)) throw new Error(ERRORS.BAD_REQUEST);
+
+		const newUser = {
+			...userToUpdate,
+			id,
+		};
+
+		const userToUpdateIndex = this.users.findIndex((user) => user.id === id);
+
+		if (userToUpdateIndex === -1) throw new Error(ERRORS.NOT_FOUND);
+
+		this.users[userToUpdateIndex] = newUser;
+
+		return newUser;
+	}
+
+	private isValidUser(obj: unknown): obj is UserWithoutId {
 		// TODO make this unwrapped to explicitly inform what condition is wrong
 		return (
 			!!obj &&
