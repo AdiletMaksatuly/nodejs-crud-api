@@ -12,6 +12,11 @@ export default class Controller {
 		res.end(message);
 	};
 
+	public sendDeleteOk = (res: http.ServerResponse): void => {
+		res.writeHead(204);
+		res.end();
+	};
+
 	public sendBadRequest = (res: http.ServerResponse, message: string): void => {
 		res.writeHead(400, ERRORS.BAD_REQUEST, { 'Content-Type': 'text/plain' });
 		res.end(message);

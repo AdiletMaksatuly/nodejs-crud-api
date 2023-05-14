@@ -3,7 +3,7 @@ import { ERRORS } from '../lib/index.js';
 import { type User, type UserWithoutId } from './user.interface.js';
 
 class UsersService {
-	private readonly users: User[] = [
+	private users: User[] = [
 		{
 			id: 'edd2ea12-5043-4a5a-81bc-85b2d4ac823a',
 			username: 'John',
@@ -32,7 +32,7 @@ class UsersService {
 			id: v4(),
 		};
 
-		this.users.push(user);
+		this.users = [...this.users, user];
 
 		return user;
 	}
@@ -48,13 +48,25 @@ class UsersService {
 			id,
 		};
 
-		const userToUpdateIndex = this.users.findIndex((user) => user.id === id);
+		const doesUserExist = this.users.findIndex((user) => user.id === id) !== -1;
 
-		if (userToUpdateIndex === -1) throw new Error(ERRORS.NOT_FOUND);
+		if (!doesUserExist) throw new Error(ERRORS.NOT_FOUND);
 
-		this.users[userToUpdateIndex] = newUser;
+		this.users = this.users.map((user) => {
+			if (user.id === id) return newUser;
+
+			return user;
+		});
 
 		return newUser;
+	}
+
+	public async findByIdAndDelete(id: string): Promise<void> {
+		const doesUserExist = this.users.findIndex((user) => user.id === id) !== -1;
+
+		if (!doesUserExist) throw new Error(ERRORS.NOT_FOUND);
+
+		this.users = this.users.filter((user) => user.id !== id);
 	}
 
 	private isValidUser(obj: unknown): obj is UserWithoutId {

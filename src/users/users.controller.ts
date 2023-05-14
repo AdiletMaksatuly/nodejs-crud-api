@@ -105,12 +105,31 @@ class UsersController extends Controller implements UsersControllerEndpoints {
 		}
 	};
 
-	public async deleteUser(
+	public deleteUser = async (
 		req: ExtendedRequest,
 		res: http.ServerResponse
-	): Promise<void> {
-		res.end('DELETE users/:id');
-	}
+	): Promise<void> => {
+		if (!req.params?.id) throw new Error('No id provided');
+
+		if (!uuid.validate(req.params.id)) {
+			this.sendBadRequest(res, 'Invalid user id');
+			return;
+		}
+
+		try {
+			await UsersService.findByIdAndDelete(req.params.id);
+
+			this.sendDeleteOk(res);
+		} catch (error: unknown) {
+			if (error instanceof Error && error.message === ERRORS.NOT_FOUND) {
+				this.sendNotFound(res, error.message);
+				return;
+			}
+
+			this.sendInternalServerError(res, ERRORS.INTERNAL_SERVER_ERROR);
+			throw error;
+		}
+	};
 }
 
 export default new UsersController();
