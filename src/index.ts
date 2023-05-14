@@ -1,25 +1,34 @@
-import * as dotenv from 'dotenv';
-import { Server } from './lib/index.js';
-import { usersRouter } from './users/index.js';
-import appRouter from './app/app.router.js';
-import { json, parseBody } from './lib/middlewares/index.js';
+import 'dotenv/config.js';
+import cluster from 'cluster';
+import { parseArgs } from './utils/args.util.js';
+import { PORT } from './constants/port.const.js';
+import { type ProcessArgs } from './types/process-args.type.js';
+import {
+	createAppServer,
+	createLoadBalancerServer,
+	createWorkerServer,
+	spreadWorkers,
+} from './server.js';
 
-dotenv.config();
+const processArgs = parseArgs(process.argv);
 
-const PORT = process.env.PORT ?? 3000;
+const start = (args: ProcessArgs): void => {
+	if (args.mode === 'cluster') {
+		if (cluster.isPrimary) {
+			spreadWorkers();
+			createLoadBalancerServer();
+		}
 
-const BASE_URL = '/api';
+		if (cluster.isWorker) {
+			createWorkerServer();
+		}
+	} else {
+		const server = createAppServer();
 
-const server = new Server();
+		server.listen(PORT, () => {
+			console.info(`Server started on port: ${PORT}`);
+		});
+	}
+};
 
-const registerRouter = server.registerRouter.bind(server, BASE_URL);
-
-registerRouter(usersRouter);
-registerRouter(appRouter);
-
-server.use(json);
-server.use(parseBody);
-
-server.listen(PORT, () => {
-	console.info(`Server is listening on port: ${PORT}`);
-});
+start(processArgs);

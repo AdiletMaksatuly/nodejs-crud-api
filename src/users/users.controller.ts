@@ -13,14 +13,19 @@ interface UsersControllerEndpoints {
 }
 
 class UsersController extends Controller implements UsersControllerEndpoints {
-	public async getUsers(
+	public getUsers = async (
 		req: ExtendedRequest,
 		res: http.ServerResponse
-	): Promise<void> {
-		const users = await UsersService.find();
+	): Promise<void> => {
+		try {
+			const users = await UsersService.find();
 
-		res.end(users);
-	}
+			res.end(users);
+		} catch (error: unknown) {
+			this.sendInternalServerError(res, ERRORS.INTERNAL_SERVER_ERROR);
+			throw error;
+		}
+	};
 
 	public getUser = async (
 		req: ExtendedRequest,
