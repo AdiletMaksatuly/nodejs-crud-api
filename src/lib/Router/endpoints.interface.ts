@@ -3,11 +3,11 @@ import { type CustomRequest } from '../models/request.type.js';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
-export type Endpoint = {
+export type Endpoint = Partial<{
 	[key in HttpMethod]: (
 		req: CustomRequest,
 		res: http.ServerResponse
 	) => Promise<void>;
-};
+}>;
 
-export type Endpoints = Record<string, Partial<Endpoint>>;
+export type Endpoints = Record<string, Endpoint>;

@@ -3,11 +3,13 @@ import type Router from '../Router/Router.js';
 import EventEmitter from 'events';
 import { keys } from '../../utils/keys.util.js';
 import {
+	type Endpoint,
 	type Endpoints,
 	type HttpMethod,
 } from '../Router/endpoints.interface.js';
 import { type Middleware } from '../models/middleware.type.js';
 import { type CustomRequest } from '../models/request.type.js';
+import { ERRORS } from '../constants/errors.const.js';
 
 export default class Server extends EventEmitter {
 	private readonly server: http.Server;
@@ -18,7 +20,12 @@ export default class Server extends EventEmitter {
 
 	constructor() {
 		super();
-		this.server = http.createServer(this.handleRequest);
+		this.server = http.createServer((req, res) => {
+			this.setRequestListeners(req, res);
+			this.handleRequest(req, res);
+		});
+
+		this.setListeners();
 	}
 
 	public listen(port: number | string, callback: () => void): void {
@@ -32,34 +39,13 @@ export default class Server extends EventEmitter {
 	public registerRouter(baseURL: string, router: Router): void {
 		const endpoints = router.getEndpoints();
 
-		const setEndpointEvent = (path: string): void => {
-			const endpoint = endpoints[path];
+		const setEndpointEvent = this.setEndpointEvent.bind(this, baseURL);
 
-			keys(endpoint).forEach((method) => {
-				const normalizedPath = baseURL + path;
-
-				if (this.isEndpointAlreadyExists(normalizedPath, method)) {
-					throw new Error(
-						`Endpoint ${path} already exists for method ${method}`
-					);
-				}
-
-				const handler = endpoint[method];
-
-				if (!handler) {
-					throw new Error(
-						`Endpoint ${path} doesn't have handler for method ${method}`
-					);
-				}
-
-				// eslint-disable-next-line @typescript-eslint/no-misused-promises
-				this.on(this.constructEventName(normalizedPath, method), handler);
-			});
-		};
-
-		keys(endpoints).forEach((path) => {
-			setEndpointEvent(String(path));
-		});
+		keys(endpoints).forEach((path) =>
+			{ keys(endpoints[path]).forEach((method) =>
+				{ setEndpointEvent(endpoints[path], path, method); }
+			); }
+		);
 
 		this.allEndpoints = {
 			...this.allEndpoints,
@@ -67,6 +53,56 @@ export default class Server extends EventEmitter {
 				? endpoints
 				: this.normalizeEndpoints(baseURL, endpoints)),
 		};
+	}
+
+	private readonly setListeners = (): void => {
+		this.server.on('error', (error) => {
+			this.emit('error', error);
+		});
+
+		this.on('error', (error) => {
+			console.error(error);
+		});
+	};
+
+	private readonly setEndpointEvent = (
+		baseURL: string,
+		endpoint: Endpoint,
+		path: string,
+		method: HttpMethod
+	): void => {
+		const normalizedPath = baseURL + path;
+
+		if (this.isEndpointAlreadyExists(normalizedPath, method)) {
+			throw new Error(`Endpoint ${path} already exists for method ${method}`);
+		}
+
+		const handler = endpoint[method];
+
+		if (!handler) {
+			throw new Error(
+				`Endpoint ${path} doesn't have handler for method ${method}`
+			);
+		}
+
+		this.on(
+			this.constructEventName(normalizedPath, method),
+			(req: CustomRequest, res: http.ServerResponse) => {
+				handler(req, res).catch((error) => {
+					this.emit('error', error);
+
+					res.writeHead(500, ERRORS.INTERNAL_SERVER_ERROR);
+					res.end(ERRORS.INTERNAL_SERVER_ERROR);
+				});
+			}
+		);
+	};
+
+	private setRequestListeners(
+		req: http.IncomingMessage,
+		res: http.ServerResponse
+	): void {
+		res.on('error', (error: unknown) => this.emit('error', error));
 	}
 
 	private isEndpointAlreadyExists(path: string, method: HttpMethod): boolean {
@@ -122,7 +158,7 @@ export default class Server extends EventEmitter {
 
 	private sendNotFound(res: http.ServerResponse): void {
 		res.statusCode = 404;
-		res.end('Not found');
+		res.end(ERRORS.NOT_FOUND);
 	}
 
 	private getPatternRegex(path: string): RegExp {
