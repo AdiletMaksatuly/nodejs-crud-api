@@ -4,4 +4,4 @@ import type ExtendedRequest from '../ExtendedRequest/ExtendedRequest.js';
 export type Middleware = (
 	req: ExtendedRequest,
 	res: http.ServerResponse
-) => void;
+) => void | Promise<void>;

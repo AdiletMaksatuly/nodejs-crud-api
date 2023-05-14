@@ -27,7 +27,9 @@ export default class Server extends EventEmitter {
 			},
 			(req, res) => {
 				this.setRequestListeners(req, res);
-				this.handleRequest(req, res);
+				this.handleRequest(req, res).catch((error) =>
+					this.emit('error', error)
+				);
 			}
 		);
 
@@ -131,10 +133,10 @@ export default class Server extends EventEmitter {
 		return normalizedEndpoints;
 	}
 
-	private readonly handleRequest = (
+	private readonly handleRequest = async (
 		req: ExtendedRequest,
 		res: http.ServerResponse
-	): void => {
+	): Promise<void> => {
 		const requestPath = req.url ?? '/';
 		const requestMethod = req.method as HttpMethod;
 
@@ -146,9 +148,13 @@ export default class Server extends EventEmitter {
 			if (pattern.test(requestPath)) {
 				req.params = this.extractParams(endpointPath, requestPath);
 
-				this.middlewares.forEach((middleware) => {
-					middleware(req, res);
-				});
+				for await (const middleware of this.middlewares) {
+					try {
+						await middleware(req, res);
+					} catch (error: unknown) {
+						this.emit('error', error);
+					}
+				}
 
 				isHandled = this.emit(
 					this.constructEventName(endpointPath, requestMethod),
