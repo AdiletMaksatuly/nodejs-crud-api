@@ -46,6 +46,12 @@ export default class Server extends EventEmitter {
 
 				const handler = endpoint[method];
 
+				if (!handler) {
+					throw new Error(
+						`Endpoint ${path} doesn't have handler for method ${method}`
+					);
+				}
+
 				// eslint-disable-next-line @typescript-eslint/no-misused-promises
 				this.on(this.constructEventName(normalizedPath, method), handler);
 			});

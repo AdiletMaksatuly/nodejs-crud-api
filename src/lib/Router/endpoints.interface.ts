@@ -10,4 +10,4 @@ export type Endpoint = {
 	) => Promise<void>;
 };
 
-export type Endpoints = Record<string, Endpoint>;
+export type Endpoints = Record<string, Partial<Endpoint>>;

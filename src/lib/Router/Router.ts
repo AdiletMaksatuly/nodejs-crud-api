@@ -1,8 +1,4 @@
-import {
-	type Endpoint,
-	type Endpoints,
-	type HttpMethod,
-} from './endpoints.interface.js';
+import { type Endpoints, type HttpMethod } from './endpoints.interface.js';
 import { type RequestHandler } from '../models/request-handler.type.js';
 
 export default class Router {
@@ -21,20 +17,13 @@ export default class Router {
 		path: string,
 		handler: RequestHandler
 	): void {
-		if (this.endpoints[path]) {
-			const endpoint: Endpoint = {
-				GET: async (req, res) => {},
-				POST: async (req, res) => {},
-				PUT: async (req, res) => {},
-				DELETE: async (req, res) => {},
-			};
-
-			this.endpoints[path] = endpoint;
+		if (!this.endpoints[path]) {
+			this.endpoints[path] = {};
 		}
 
 		const endpoint = this.endpoints[path];
 
-		if (endpoint[method] !== undefined) {
+		if (endpoint[method]) {
 			throw new Error(`Endpoint ${path} already exists for method ${method}`);
 		}
 
