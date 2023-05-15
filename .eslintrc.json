@@ -1,0 +1,39 @@
+{
+    "env": {
+        "node": true,
+        "es2021": true
+    },
+    "extends": ["standard-with-typescript", "prettier"],
+    "ignorePatterns": ["src/**/*.spec.ts"],
+    "overrides": [
+    ],
+    "parserOptions": {
+        "ecmaVersion": "latest",
+        "sourceType": "module",
+        "project": "./tsconfig.json"
+    },
+    "rules": {
+        "@typescript-eslint/explicit-function-return-type": "warn",
+        "@typescript-eslint/typedef": "warn",
+        "no-console": ["error", { "allow": ["info", "warn", "error"] }],
+        "@typescript-eslint/explicit-member-accessibility": ["warn", {
+            "accessibility": "explicit",
+            "overrides": {
+                "accessors": "off",
+                "constructors": "no-public",
+                "methods": "explicit",
+                "properties": "explicit",
+                "parameterProperties": "explicit"
+            }
+        }],
+        "@typescript-eslint/no-shadow": [
+            "error",
+            {
+                "allow": ["module"]
+            }
+        ],
+        "no-inline-comments": "error",
+        "no-debugger": "error",
+        "@typescript-eslint/strict-boolean-expressions": "off"
+    }
+}
